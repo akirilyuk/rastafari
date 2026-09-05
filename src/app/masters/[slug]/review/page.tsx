@@ -8,7 +8,8 @@ import { OTHER_SERVICE, REVIEW_CRITERIA, SERVICES } from "@/lib/catalog";
 import { useAuth } from "@/lib/auth-client";
 import { useStore } from "@/lib/store";
 import { getTrafficSource } from "@/components/source-tracker";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -87,9 +88,9 @@ export default function ReviewPage() {
           Reviews only go live after the address is confirmed. In production we send that link by
           email. In this prototype, open it here:
         </p>
-        <Button className="mt-6" render={<Link href={pending} />}>
+        <Link href={pending} className={cn(buttonVariants({ size: "lg" }), "mt-6 inline-flex")}>
           Verify {email}
-        </Button>
+        </Link>
       </div>
     );
   }

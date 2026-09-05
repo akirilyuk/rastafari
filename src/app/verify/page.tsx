@@ -2,27 +2,37 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 
 export default function VerifyPage() {
   const params = useSearchParams();
   const token = params.get("token");
-  const { verifyReview, hydrated } = useStore();
+  const { verifyReview, hydrated, state } = useStore();
   const [status, setStatus] = useState<"wait" | "ok" | "bad">("wait");
-  const ran = useRef(false);
 
   useEffect(() => {
-    if (!hydrated || ran.current) return;
+    if (!hydrated) return;
     if (!token) {
       setStatus("bad");
       return;
     }
-    ran.current = true;
+
+    const existing = state.reviews.find((r) => r.verifyToken === token);
+    if (existing?.status === "published" || existing?.emailVerified) {
+      setStatus("ok");
+      return;
+    }
+    if (existing) {
+      verifyReview(token);
+      setStatus("ok");
+      return;
+    }
+
     const found = verifyReview(token);
     setStatus(found ? "ok" : "bad");
-  }, [token, verifyReview, hydrated]);
+  }, [hydrated, token, state.reviews, verifyReview]);
 
   return (
     <div className="mx-auto max-w-lg px-4 py-16 text-center">
@@ -43,7 +53,7 @@ export default function VerifyPage() {
           </p>
         </>
       )}
-      <Button className="mt-6" render={<Link href="/" />}>
+      <Button className="mt-6" nativeButton={false} render={<Link href="/" />}>
         Find artists
       </Button>
     </div>

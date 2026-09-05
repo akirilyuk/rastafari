@@ -23,6 +23,23 @@ import type {
 
 const STORAGE_KEY = "rastafari-db-v1";
 
+function persist(state: AppState) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    /* private mode */
+  }
+}
+
+function readStored(): AppState | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as AppState) : null;
+  } catch {
+    return null;
+  }
+}
+
 type StoreContextValue = {
   state: AppState;
   hydrated: boolean;
@@ -118,28 +135,49 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         reportCount: 0,
         status: "pending_email",
       };
-      setState((s) => ({ ...s, reviews: [next, ...s.reviews] }));
+      setState((s) => {
+        const updated = { ...s, reviews: [next, ...s.reviews] };
+        persist(updated);
+        return updated;
+      });
       return next;
     },
     [],
   );
 
   const verifyReview = useCallback((token: string) => {
+    const apply = (s: AppState) => {
+      const match = s.reviews.find((r) => r.verifyToken === token);
+      if (!match) return { next: s, found: null as Review | null };
+      const found: Review = {
+        ...match,
+        emailVerified: true,
+        status: "published",
+      };
+      return {
+        next: {
+          ...s,
+          reviews: s.reviews.map((r) => (r.id === match.id ? found : r)),
+        },
+        found,
+      };
+    };
+
+    const stored = readStored();
+    const fromStore = stored ? apply(stored) : { next: stored, found: null };
+    if (fromStore.found && fromStore.next) {
+      persist(fromStore.next);
+      setState(fromStore.next);
+      return fromStore.found;
+    }
+
     let found: Review | null = null;
-    setState((s) => ({
-      ...s,
-      reviews: s.reviews.map((r) => {
-        if (r.verifyToken === token) {
-          found = {
-            ...r,
-            emailVerified: true,
-            status: "published",
-          };
-          return found;
-        }
-        return r;
-      }),
-    }));
+    setState((s) => {
+      const result = apply(s);
+      found = result.found;
+      if (result.found) persist(result.next);
+      return result.next;
+    });
     return found;
   }, []);
 

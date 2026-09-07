@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { MOCK_GOOGLE_LOCATIONS } from "@/lib/catalog";
+import { upsertUser } from "@/lib/db";
 import { googleConfigured, setSessionCookie } from "@/lib/session";
 import type { AuthUser } from "@/lib/types";
 
@@ -45,6 +46,11 @@ export async function GET(req: Request) {
     picture: profile.picture,
     googleLocations: MOCK_GOOGLE_LOCATIONS,
   };
+  try {
+    await upsertUser(user);
+  } catch (error) {
+    console.error("Could not persist user to Supabase", error);
+  }
   await setSessionCookie(user);
   return NextResponse.redirect(new URL("/dashboard?imported=google", origin));
 }

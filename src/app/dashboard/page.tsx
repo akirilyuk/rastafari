@@ -89,9 +89,14 @@ export default function DashboardPage() {
                   ) : (
                     <Button
                       onClick={() => {
-                        const m = importGbpLocation(loc, user.id);
-                        setActiveId(m.id);
-                        toast.success(`${loc.name} is now a Rastafari card.`);
+                        void importGbpLocation(loc, user.id)
+                          .then((m) => {
+                            setActiveId(m.id);
+                            toast.success(`${loc.name} is now a Rastafari card.`);
+                          })
+                          .catch((error: unknown) => {
+                            toast.error(error instanceof Error ? error.message : "Could not import location.");
+                          });
                       }}
                     >
                       Use this location
@@ -135,8 +140,11 @@ export default function DashboardPage() {
               key={current.id}
               master={current}
               onSave={(patch) => {
-                updateMaster(current.id, patch);
-                toast.success("Card updated.");
+                void updateMaster(current.id, patch)
+                  .then(() => toast.success("Card updated."))
+                  .catch((error: unknown) => {
+                    toast.error(error instanceof Error ? error.message : "Could not save.");
+                  });
               }}
               onShowcase={(on) => toggleShowcase(current.id, on)}
             />

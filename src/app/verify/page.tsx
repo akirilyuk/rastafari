@@ -9,30 +9,19 @@ import { Button } from "@/components/ui/button";
 export default function VerifyPage() {
   const params = useSearchParams();
   const token = params.get("token");
-  const { verifyReview, hydrated, state } = useStore();
-  const [status, setStatus] = useState<"wait" | "ok" | "bad">("wait");
+  const { verifyReview, hydrated } = useStore();
+  const [status, setStatus] = useState<"wait" | "ok" | "bad">(token ? "wait" : "bad");
 
   useEffect(() => {
-    if (!hydrated) return;
-    if (!token) {
-      setStatus("bad");
-      return;
-    }
-
-    const existing = state.reviews.find((r) => r.verifyToken === token);
-    if (existing?.status === "published" || existing?.emailVerified) {
-      setStatus("ok");
-      return;
-    }
-    if (existing) {
-      verifyReview(token);
-      setStatus("ok");
-      return;
-    }
-
-    const found = verifyReview(token);
-    setStatus(found ? "ok" : "bad");
-  }, [hydrated, token, state.reviews, verifyReview]);
+    if (!hydrated || !token) return;
+    let cancelled = false;
+    void verifyReview(token).then((found) => {
+      if (!cancelled) setStatus(found ? "ok" : "bad");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [hydrated, token, verifyReview]);
 
   return (
     <div className="mx-auto max-w-lg px-4 py-16 text-center">

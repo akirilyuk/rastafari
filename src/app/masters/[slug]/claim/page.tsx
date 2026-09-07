@@ -46,24 +46,28 @@ export default function ClaimPage() {
     );
   }
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!master) return;
-    submitClaim({
-      masterId: master.id,
-      name: name.trim(),
-      email: email.trim(),
-      instagram: instagram.trim(),
-      message: message.trim(),
-    });
-    track({
-      name: "claim_submit",
-      source: getTrafficSource(),
-      path: `/masters/${slug}/claim`,
-      meta: master.id,
-    });
-    toast.success("Claim sent. An admin will approve it by hand.");
-    setDone(true);
+    try {
+      await submitClaim({
+        masterId: master.id,
+        name: name.trim(),
+        email: email.trim(),
+        instagram: instagram.trim(),
+        message: message.trim(),
+      });
+      track({
+        name: "claim_submit",
+        source: getTrafficSource(),
+        path: `/masters/${slug}/claim`,
+        meta: master.id,
+      });
+      toast.success("Claim sent. An admin will approve it by hand.");
+      setDone(true);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not send the claim.");
+    }
   }
 
   if (done || existing) {

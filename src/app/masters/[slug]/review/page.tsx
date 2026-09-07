@@ -61,23 +61,29 @@ export default function ReviewPage() {
       return;
     }
     const token = crypto.randomUUID();
-    const review = addReview({
-      masterId: master.id,
-      serviceId,
-      authorName: name.trim() || "Client",
-      authorEmail: email.trim(),
-      emailVerified: false,
-      verifyToken: token,
-      scores,
-      comment: comment.trim(),
-    });
-    track({
-      name: "review_submit",
-      source: getTrafficSource(),
-      path: `/masters/${slug}/review`,
-      meta: master.id,
-    });
-    setPending(`/verify?token=${review.verifyToken ?? token}`);
+    void (async () => {
+      try {
+        const review = await addReview({
+          masterId: master.id,
+          serviceId,
+          authorName: name.trim() || "Client",
+          authorEmail: email.trim(),
+          emailVerified: false,
+          verifyToken: token,
+          scores,
+          comment: comment.trim(),
+        });
+        track({
+          name: "review_submit",
+          source: getTrafficSource(),
+          path: `/masters/${slug}/review`,
+          meta: master.id,
+        });
+        setPending(`/verify?token=${review.verifyToken ?? token}`);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Could not save the review.");
+      }
+    })();
   }
 
   if (pending) {

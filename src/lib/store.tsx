@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { toast } from "sonner";
 import { DISCOVERY_POOL, createInitialState } from "./seed";
 import type {
   Ad,
@@ -20,8 +21,11 @@ import type {
   Review,
   ReviewReport,
 } from "./types";
+import { uid } from "./uid";
 
 const STORAGE_KEY = "rastafari-db-v1";
+
+export type StoreBackend = "local" | "supabase";
 
 function persist(state: AppState) {
   try {
@@ -43,52 +47,93 @@ function readStored(): AppState | null {
 type StoreContextValue = {
   state: AppState;
   hydrated: boolean;
-  reset: () => void;
+  backend: StoreBackend;
+  reset: () => Promise<void>;
   track: (event: Omit<AnalyticsEvent, "id" | "createdAt">) => void;
-  discoverCity: (city: string) => Master[];
-  addReview: (review: Omit<Review, "id" | "createdAt" | "reportCount" | "status">) => Review;
-  verifyReview: (token: string) => Review | null;
-  reportReview: (reviewId: string, reason: string, details: string) => void;
-  moderateReview: (reviewId: string, status: Review["status"]) => void;
-  resolveReport: (reportId: string, status: ReviewReport["status"]) => void;
-  submitClaim: (claim: Omit<Claim, "id" | "createdAt" | "status">) => Claim;
-  moderateClaim: (claimId: string, status: Claim["status"], userId?: string) => void;
-  updateMaster: (id: string, patch: Partial<Master>) => void;
-  importGbpLocation: (loc: GoogleBusinessLocation, userId: string) => Master;
-  upsertAd: (ad: Ad) => void;
-  toggleShowcase: (masterId: string, enabled: boolean) => void;
+  discoverCity: (city: string) => Promise<Master[]>;
+  addReview: (review: Omit<Review, "id" | "createdAt" | "reportCount" | "status">) => Promise<Review>;
+  verifyReview: (token: string) => Promise<Review | null>;
+  reportReview: (reviewId: string, reason: string, details: string) => Promise<void>;
+  moderateReview: (reviewId: string, status: Review["status"]) => Promise<void>;
+  resolveReport: (reportId: string, status: ReviewReport["status"]) => Promise<void>;
+  submitClaim: (claim: Omit<Claim, "id" | "createdAt" | "status">) => Promise<Claim>;
+  moderateClaim: (claimId: string, status: Claim["status"], userId?: string) => Promise<void>;
+  updateMaster: (id: string, patch: Partial<Master>) => Promise<void>;
+  importGbpLocation: (loc: GoogleBusinessLocation, userId: string) => Promise<Master>;
+  upsertAd: (ad: Ad) => Promise<void>;
+  toggleShowcase: (masterId: string, enabled: boolean) => Promise<void>;
 };
 
 const StoreContext = createContext<StoreContextValue | null>(null);
 
-function uid(prefix: string) {
-  return `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
+async function postStore<T>(action: string, payload?: unknown) {
+  const res = await fetch("/api/store", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payload === undefined ? { action } : { action, payload }),
+  });
+  const data = (await res.json()) as { error?: string; result?: T; state?: AppState };
+  if (!res.ok) throw new Error(data.error || "Request failed");
+  return data;
 }
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(createInitialState);
   const [hydrated, setHydrated] = useState(false);
+  const [backend, setBackend] = useState<StoreBackend>("local");
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setState(JSON.parse(raw) as AppState);
-    } catch {
-      /* keep seed */
-    }
-    setHydrated(true);
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/store");
+        const data = (await res.json()) as {
+          backend?: StoreBackend;
+          state?: AppState;
+          error?: string;
+        };
+        if (cancelled) return;
+        if (data.backend === "supabase" && data.state) {
+          setBackend("supabase");
+          setState(data.state);
+        } else {
+          if (data.backend === "supabase" && data.error) {
+            toast.error(`Supabase: ${data.error}`);
+          }
+          const stored = readStored();
+          if (stored) setState(stored);
+        }
+      } catch {
+        const stored = readStored();
+        if (stored && !cancelled) setState(stored);
+      } finally {
+        if (!cancelled) setHydrated(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
-    if (!hydrated) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [state, hydrated]);
+    if (!hydrated || backend !== "local") return;
+    persist(state);
+  }, [state, hydrated, backend]);
 
-  const reset = useCallback(() => {
+  const applyRemote = useCallback((next?: AppState) => {
+    if (next) setState(next);
+  }, []);
+
+  const reset = useCallback(async () => {
+    if (backend === "supabase") {
+      const data = await postStore<boolean>("reset");
+      applyRemote(data.state);
+      return;
+    }
     const next = createInitialState();
     setState(next);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  }, []);
+    persist(next);
+  }, [applyRemote, backend]);
 
   const track = useCallback((event: Omit<AnalyticsEvent, "id" | "createdAt">) => {
     setState((s) => ({
@@ -102,15 +147,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         ...s.events,
       ].slice(0, 400),
     }));
-  }, []);
+    if (backend === "supabase") {
+      void postStore("track", event).catch(() => {
+        /* funnel is best-effort */
+      });
+    }
+  }, [backend]);
 
-  const discoverCity = useCallback((city: string) => {
+  const discoverCity = useCallback(async (city: string) => {
+    if (backend === "supabase") {
+      const data = await postStore<Master[]>("discoverCity", { city });
+      applyRemote(data.state);
+      return data.result ?? [];
+    }
     const key = city.trim().toLowerCase();
     const already = state.discoveredCities.map((c) => c.toLowerCase()).includes(key);
     if (already) return [];
     const imported = DISCOVERY_POOL.filter(
-      (m) =>
-        m.city.toLowerCase() === key && !state.masters.some((x) => x.id === m.id),
+      (m) => m.city.toLowerCase() === key && !state.masters.some((x) => x.id === m.id),
     );
     setState((s) => {
       if (s.discoveredCities.map((c) => c.toLowerCase()).includes(key)) return s;
@@ -124,10 +178,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       };
     });
     return imported;
-  }, [state.discoveredCities, state.masters]);
+  }, [applyRemote, backend, state.discoveredCities, state.masters]);
 
   const addReview = useCallback(
-    (review: Omit<Review, "id" | "createdAt" | "reportCount" | "status">) => {
+    async (review: Omit<Review, "id" | "createdAt" | "reportCount" | "status">) => {
+      if (backend === "supabase") {
+        const data = await postStore<Review>("addReview", review);
+        applyRemote(data.state);
+        if (!data.result) throw new Error("Review was not saved");
+        return data.result;
+      }
       const next: Review = {
         ...review,
         id: uid("rev"),
@@ -142,10 +202,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       });
       return next;
     },
-    [],
+    [applyRemote, backend],
   );
 
-  const verifyReview = useCallback((token: string) => {
+  const verifyReview = useCallback(async (token: string) => {
+    if (backend === "supabase") {
+      const data = await postStore<Review | null>("verifyReview", { token });
+      applyRemote(data.state);
+      return data.result ?? null;
+    }
     const apply = (s: AppState) => {
       const match = s.reviews.find((r) => r.verifyToken === token);
       if (!match) return { next: s, found: null as Review | null };
@@ -179,9 +244,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return result.next;
     });
     return found;
-  }, []);
+  }, [applyRemote, backend]);
 
-  const reportReview = useCallback((reviewId: string, reason: string, details: string) => {
+  const reportReview = useCallback(async (reviewId: string, reason: string, details: string) => {
+    if (backend === "supabase") {
+      const data = await postStore("reportReview", { reviewId, reason, details });
+      applyRemote(data.state);
+      return;
+    }
     setState((s) => ({
       ...s,
       reports: [
@@ -199,23 +269,39 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         r.id === reviewId ? { ...r, reportCount: r.reportCount + 1 } : r,
       ),
     }));
-  }, []);
+  }, [applyRemote, backend]);
 
-  const moderateReview = useCallback((reviewId: string, status: Review["status"]) => {
+  const moderateReview = useCallback(async (reviewId: string, status: Review["status"]) => {
+    if (backend === "supabase") {
+      const data = await postStore("moderateReview", { reviewId, status });
+      applyRemote(data.state);
+      return;
+    }
     setState((s) => ({
       ...s,
       reviews: s.reviews.map((r) => (r.id === reviewId ? { ...r, status } : r)),
     }));
-  }, []);
+  }, [applyRemote, backend]);
 
-  const resolveReport = useCallback((reportId: string, status: ReviewReport["status"]) => {
+  const resolveReport = useCallback(async (reportId: string, status: ReviewReport["status"]) => {
+    if (backend === "supabase") {
+      const data = await postStore("resolveReport", { reportId, status });
+      applyRemote(data.state);
+      return;
+    }
     setState((s) => ({
       ...s,
       reports: s.reports.map((r) => (r.id === reportId ? { ...r, status } : r)),
     }));
-  }, []);
+  }, [applyRemote, backend]);
 
-  const submitClaim = useCallback((claim: Omit<Claim, "id" | "createdAt" | "status">) => {
+  const submitClaim = useCallback(async (claim: Omit<Claim, "id" | "createdAt" | "status">) => {
+    if (backend === "supabase") {
+      const data = await postStore<Claim>("submitClaim", claim);
+      applyRemote(data.state);
+      if (!data.result) throw new Error("Claim was not saved");
+      return data.result;
+    }
     const next: Claim = {
       ...claim,
       id: uid("cl"),
@@ -224,10 +310,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     };
     setState((s) => ({ ...s, claims: [next, ...s.claims] }));
     return next;
-  }, []);
+  }, [applyRemote, backend]);
 
   const moderateClaim = useCallback(
-    (claimId: string, status: Claim["status"], userId?: string) => {
+    async (claimId: string, status: Claim["status"], userId?: string) => {
+      if (backend === "supabase") {
+        const data = await postStore("moderateClaim", { claimId, status, userId });
+        applyRemote(data.state);
+        return;
+      }
       setState((s) => {
         const claim = s.claims.find((c) => c.id === claimId);
         return {
@@ -240,7 +331,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
                     ? {
                         ...m,
                         claimed: true,
-                        claimedByUserId: userId ?? m.claimedByUserId,
+                        claimedByUserId: userId ?? claim.userId ?? m.claimedByUserId,
                         source: m.source === "google-import" ? "registered" : m.source,
                       }
                     : m,
@@ -249,17 +340,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         };
       });
     },
-    [],
+    [applyRemote, backend],
   );
 
-  const updateMaster = useCallback((id: string, patch: Partial<Master>) => {
+  const updateMaster = useCallback(async (id: string, patch: Partial<Master>) => {
+    if (backend === "supabase") {
+      const data = await postStore("updateMaster", { id, patch });
+      applyRemote(data.state);
+      return;
+    }
     setState((s) => ({
       ...s,
       masters: s.masters.map((m) => (m.id === id ? { ...m, ...patch } : m)),
     }));
-  }, []);
+  }, [applyRemote, backend]);
 
-  const importGbpLocation = useCallback((loc: GoogleBusinessLocation, userId: string) => {
+  const importGbpLocation = useCallback(async (loc: GoogleBusinessLocation, userId: string) => {
+    if (backend === "supabase") {
+      const data = await postStore<Master>("importGbpLocation", { loc });
+      applyRemote(data.state);
+      if (!data.result) throw new Error("Location was not imported");
+      return data.result;
+    }
     const existing = state.masters.find((m) => m.googlePlaceId === loc.placeId);
     if (existing) return existing;
     const master: Master = {
@@ -290,9 +392,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     };
     setState((s) => ({ ...s, masters: [master, ...s.masters] }));
     return master;
-  }, [state.masters]);
+  }, [applyRemote, backend, state.masters]);
 
-  const upsertAd = useCallback((ad: Ad) => {
+  const upsertAd = useCallback(async (ad: Ad) => {
+    if (backend === "supabase") {
+      const data = await postStore("upsertAd", ad);
+      applyRemote(data.state);
+      return;
+    }
     setState((s) => {
       const exists = s.ads.some((a) => a.id === ad.id);
       return {
@@ -300,21 +407,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         ads: exists ? s.ads.map((a) => (a.id === ad.id ? ad : a)) : [ad, ...s.ads],
       };
     });
-  }, []);
+  }, [applyRemote, backend]);
 
-  const toggleShowcase = useCallback((masterId: string, enabled: boolean) => {
+  const toggleShowcase = useCallback(async (masterId: string, enabled: boolean) => {
+    if (backend === "supabase") {
+      const data = await postStore("toggleShowcase", { masterId, enabled });
+      applyRemote(data.state);
+      return;
+    }
     setState((s) => ({
       ...s,
       masters: s.masters.map((m) =>
         m.id === masterId ? { ...m, hasShowcase: enabled } : m,
       ),
     }));
-  }, []);
+  }, [applyRemote, backend]);
 
   const value = useMemo(
     () => ({
       state,
       hydrated,
+      backend,
       reset,
       track,
       discoverCity,
@@ -333,6 +446,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [
       state,
       hydrated,
+      backend,
       reset,
       track,
       discoverCity,

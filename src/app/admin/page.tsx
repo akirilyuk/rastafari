@@ -17,29 +17,13 @@ export default function AdminPage() {
   const { user, loading } = useAuth();
   const {
     state,
+    backend,
     moderateClaim,
     moderateReview,
     resolveReport,
     upsertAd,
     reset,
   } = useStore();
-
-  if (loading) return <p className="px-4 py-16 text-center">Loading…</p>;
-  if (!user || user.role !== "admin") {
-    return (
-      <div className="mx-auto max-w-lg px-4 py-16 text-center">
-        <h1 className="font-heading text-3xl">Admin only</h1>
-        <p className="mt-2 text-muted-foreground">Sign in with the admin demo account to moderate claims, reviews, and ads.</p>
-        <Button className="mt-6" render={<Link href="/sign-in" />}>
-          Sign in
-        </Button>
-      </div>
-    );
-  }
-
-  const openReports = state.reports.filter((r) => r.status === "open");
-  const pendingClaims = state.claims.filter((c) => c.status === "pending");
-  const pendingReviews = state.reviews.filter((r) => r.status === "pending_email");
 
   const funnel = useMemo(() => {
     const events = state.events;
@@ -59,15 +43,42 @@ export default function AdminPage() {
     };
   }, [state.events]);
 
+  if (loading) return <p className="px-4 py-16 text-center">Loading…</p>;
+  if (!user || user.role !== "admin") {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-16 text-center">
+        <h1 className="font-heading text-3xl">Admin only</h1>
+        <p className="mt-2 text-muted-foreground">Sign in with the admin demo account to moderate claims, reviews, and ads.</p>
+        <Button className="mt-6" render={<Link href="/sign-in" />}>
+          Sign in
+        </Button>
+      </div>
+    );
+  }
+
+  const openReports = state.reports.filter((r) => r.status === "open");
+  const pendingClaims = state.claims.filter((c) => c.status === "pending");
+  const pendingReviews = state.reviews.filter((r) => r.status === "pending_email");
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs tracking-[0.2em] text-gold uppercase">Moderation</p>
           <h1 className="font-heading text-4xl">Admin</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Database: {backend === "supabase" ? "Supabase (shared)" : "this browser (localStorage)"}
+          </p>
         </div>
-        <Button variant="outline" onClick={() => { reset(); toast.success("Demo data reset."); }}>
-          Reset local data
+        <Button
+          variant="outline"
+          onClick={() => {
+            void reset().then(() =>
+              toast.success(backend === "supabase" ? "Database reset to seed data." : "Demo data reset."),
+            );
+          }}
+        >
+          {backend === "supabase" ? "Reset database" : "Reset local data"}
         </Button>
       </div>
 
@@ -226,7 +237,8 @@ export default function AdminPage() {
 
         <TabsContent value="stats" className="mt-4">
           <p className="mb-4 text-sm text-muted-foreground">
-            Events stay in this browser. Append <code className="text-gold">?src=google-ads</code>{" "}
+            Events stay {backend === "supabase" ? "in Supabase" : "in this browser"}. Append{" "}
+            <code className="text-gold">?src=google-ads</code>{" "}
             to any URL to mark a Google Ads visit, then watch how many of those sessions click an
             artist vs a course.
           </p>

@@ -1,6 +1,7 @@
 {
   "name": "Rastafari",
-  "install": "npm ci",
+  "install": "npm ci && bash scripts/install-tokensave.sh",
+  "start": "command -v tokensave >/dev/null && tokensave sync || true",
   "terminals": [
     {
       "name": "dev",

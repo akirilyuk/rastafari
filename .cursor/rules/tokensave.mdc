@@ -1,0 +1,8 @@
+---
+description: Prefer TokenSave MCP tools over scanning the repo with grep/glob/read
+alwaysApply: true
+---
+
+When TokenSave MCP tools are available (`tokensave_search`, `tokensave_context`, `tokensave_node`, `tokensave_status`, and related graph tools), use them first for code discovery instead of Grep, Glob, wide Read sweeps, or Explore subagents. Query the graph, then open only the files those tools name.
+
+Do not narrate token-savings metrics unless the user asks. If tokensave is not installed or the MCP server is disconnected, fall back to the usual search tools.

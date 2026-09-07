@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "command": "tokensave hook-pre-tool-use",
+        "matcher": "Grep|Shell"
+      }
+    ],
+    "stop": [
+      {
+        "command": "tokensave hook-stop"
+      }
+    ],
+    "beforeSubmitPrompt": [
+      {
+        "command": "tokensave hook-prompt-submit"
+      }
+    ]
+  }
+}

@@ -59,6 +59,8 @@ Real Google login: set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `AUTH_SECRET`
 
 Data lives in **Supabase** when `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set. Human setup (project, SQL, laptop env, Cursor Cloud secrets) is in [docs/human-tasks/supabase-setup.md](docs/human-tasks/supabase-setup.md). Without those env vars the prototype still uses this browser's `localStorage`. Reset from Admin.
 
+[TokenSave](docs/human-tasks/tokensave-setup.md) is wired as a project MCP server so agents can query a local code graph instead of scanning files.
+
 ## Stack
 
 Next.js, TypeScript, Tailwind, shadcn/ui, Leaflet (OpenStreetMap / CARTO), Nominatim geocoding, Supabase (Postgres).

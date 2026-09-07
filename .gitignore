@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# tokensave local code graph (rebuilt by scripts/install-tokensave.sh)
+.tokensave/

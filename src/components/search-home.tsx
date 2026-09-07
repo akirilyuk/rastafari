@@ -36,7 +36,7 @@ export function SearchHome() {
     setOrigin(place);
     setQuery(place.city);
     setSuggestions([]);
-    const imported = discoverCity(place.city);
+    const imported = await discoverCity(place.city);
     track({
       name: "search",
       source: getTrafficSource(),

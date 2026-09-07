@@ -40,7 +40,7 @@ Google: OAuth sign-in, then a menu of **Google Business locations** to import. W
 
 ```bash
 npm install
-cp .env.example .env.local   # optional; Google OAuth only
+cp .env.example .env.local   # optional; Google OAuth and/or Supabase
 npm run dev
 ```
 
@@ -57,11 +57,20 @@ Demo accounts on `/sign-in` (no password):
 
 Real Google login: set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `AUTH_SECRET`, and `AUTH_URL` to this origin. Authorized redirect: `{AUTH_URL}/api/auth/google/callback`.
 
-Data lives in the browser (`localStorage`) so the prototype deploys as a static-friendly Next app. Reset from Admin.
+Data lives in **Supabase** when `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set. Run `supabase/schema.sql` in the project's SQL editor once; the app seeds users, shops, reviews, products, courses, and ads on first load. Without those env vars the prototype still uses this browser's `localStorage`. Reset from Admin.
+
+### Supabase setup
+
+1. Create a project at [supabase.com](https://supabase.com).
+2. SQL editor → paste and run `supabase/schema.sql`.
+3. Settings → API: copy the project URL, anon key, and **service role** key into `.env.local`.
+4. Restart `npm run dev`. Admin will show `Database: Supabase (shared)`.
+
+The service role key stays on the server (`src/app/api/store`). The browser never talks to Postgres directly. Row Level Security still allows public reads of shops, published reviews, products, courses, and active ads.
 
 ## Stack
 
-Next.js, TypeScript, Tailwind, shadcn/ui, Leaflet (OpenStreetMap / CARTO), Nominatim geocoding.
+Next.js, TypeScript, Tailwind, shadcn/ui, Leaflet (OpenStreetMap / CARTO), Nominatim geocoding, Supabase (Postgres).
 
 ## What is deliberately not in v1
 

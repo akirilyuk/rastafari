@@ -134,6 +134,7 @@ export type Claim = {
   message: string;
   status: ClaimStatus;
   createdAt: string;
+  userId?: string;
 };
 
 export type Ad = {

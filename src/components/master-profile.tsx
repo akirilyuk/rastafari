@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 import { MapPin, Store } from "lucide-react";
 import { toast } from "sonner";
-import { OTHER_SERVICE, REVIEW_CRITERIA, SERVICES, serviceById } from "@/lib/catalog";
+import { OTHER_SERVICE, REVIEW_CRITERIA, serviceById } from "@/lib/catalog";
 import { averageScore, masterRating, serviceRating, useStore } from "@/lib/store";
 import { getTrafficSource } from "@/components/source-tracker";
 import { Badge } from "@/components/ui/badge";
@@ -241,8 +241,9 @@ export function MasterProfile() {
               </Button>
               <Button
                 onClick={() => {
-                  reportReview(reportId, reportReason, reportDetails);
-                  toast.success("Report sent to moderation.");
+                  void reportReview(reportId, reportReason, reportDetails).then(() => {
+                    toast.success("Report sent to moderation.");
+                  });
                   setReportId(null);
                   setReportDetails("");
                 }}

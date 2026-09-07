@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { DEMO_ACCOUNTS, MOCK_GOOGLE_LOCATIONS } from "@/lib/catalog";
+import { upsertUser } from "@/lib/db";
 import { setSessionCookie } from "@/lib/session";
 import type { AuthUser } from "@/lib/types";
 
@@ -23,6 +24,11 @@ export async function POST(req: Request) {
     user = { ...match };
   }
 
+  try {
+    await upsertUser(user);
+  } catch (error) {
+    console.error("Could not persist user to Supabase", error);
+  }
   await setSessionCookie(user);
   return NextResponse.json({ user });
 }

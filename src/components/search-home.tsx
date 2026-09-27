@@ -126,13 +126,13 @@ export function SearchHome() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(212,160,40,0.18),_transparent_55%)]" />
         <div className="relative mx-auto max-w-6xl px-4 py-10 sm:py-14">
           <p className="text-xs font-medium tracking-[0.2em] text-gold uppercase">
-            DREADS · BRAIDS · CORNROWS · TWISTS · NATURAL DREADLOCKS
+            DREADLOCKS · BRAIDS · CORNROWS · TWISTS · NATURAL DREADLOCKS
           </p>
           <h1 className="mt-2 max-w-2xl font-heading text-4xl leading-[1.1] text-balance sm:text-5xl">
             The nearest artist for your hair, not a random salon.
           </h1>
           <p className="mt-3 max-w-xl text-muted-foreground">
-            Turn on location or type a city. Filter natural dreads, synthetic sets, kosy, and
+            Turn on location or type a city. Filter natural dreadlocks, synthetic sets, cornrows, and
             braids. Cards work like a map pin you can actually trust.
           </p>
 

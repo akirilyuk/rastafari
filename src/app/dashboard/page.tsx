@@ -113,8 +113,9 @@ export default function DashboardPage() {
         <div className="mt-8 rounded-2xl bg-card p-6 ring-1 ring-foreground/10">
           <p className="font-medium">No studio attached yet</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Claim an unclaimed listing from the map, or import a Google location above. The demo
-            artist account already owns Roots Atelier in Berlin.
+            New artist accounts get a listing automatically. Refresh if it is still appearing, or
+            import a Google location above. The demo artist account already owns Roots Atelier in
+            Berlin.
           </p>
           <Button className="mt-4" render={<Link href="/" />}>
             Find a listing to claim

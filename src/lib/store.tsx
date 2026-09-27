@@ -10,11 +10,13 @@ import {
   type ReactNode,
 } from "react";
 import { toast } from "sonner";
+import { listingFromRegisteredUser } from "./register-master";
 import { DISCOVERY_POOL, createInitialState } from "./seed";
 import type {
   Ad,
   AnalyticsEvent,
   AppState,
+  AuthUser,
   Claim,
   GoogleBusinessLocation,
   Master,
@@ -60,6 +62,7 @@ type StoreContextValue = {
   moderateClaim: (claimId: string, status: Claim["status"], userId?: string) => Promise<void>;
   updateMaster: (id: string, patch: Partial<Master>) => Promise<void>;
   importGbpLocation: (loc: GoogleBusinessLocation, userId: string) => Promise<Master>;
+  ensureRegisteredMaster: (user: AuthUser) => Promise<Master | null>;
   upsertAd: (ad: Ad) => Promise<void>;
   toggleShowcase: (masterId: string, enabled: boolean) => Promise<void>;
 };
@@ -355,6 +358,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }));
   }, [applyRemote, backend]);
 
+  const ensureRegisteredMaster = useCallback(async (user: AuthUser) => {
+    if (user.role !== "master") return null;
+    if (backend === "supabase") {
+      const data = await postStore<Master>("ensureRegisteredMaster");
+      applyRemote(data.state);
+      return data.result ?? null;
+    }
+    const already = state.masters.find((m) => m.claimedByUserId === user.id);
+    if (already) return already;
+    const master = listingFromRegisteredUser(
+      user,
+      state.masters.map((m) => m.slug),
+    );
+    setState((s) => {
+      if (s.masters.some((m) => m.claimedByUserId === user.id)) return s;
+      return { ...s, masters: [master, ...s.masters] };
+    });
+    return master;
+  }, [applyRemote, backend, state.masters]);
+
   const importGbpLocation = useCallback(async (loc: GoogleBusinessLocation, userId: string) => {
     if (backend === "supabase") {
       const data = await postStore<Master>("importGbpLocation", { loc });
@@ -440,6 +463,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       moderateClaim,
       updateMaster,
       importGbpLocation,
+      ensureRegisteredMaster,
       upsertAd,
       toggleShowcase,
     }),
@@ -459,6 +483,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       moderateClaim,
       updateMaster,
       importGbpLocation,
+      ensureRegisteredMaster,
       upsertAd,
       toggleShowcase,
     ],

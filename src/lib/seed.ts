@@ -5,6 +5,42 @@ function img(id: string, w = 1200) {
   return `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=80`;
 }
 
+const DEAD_UNSPLASH_IDS: Record<string, string> = {
+  "photo-1502823403499-6ccfcf4cb453": "photo-1494790108377-be9c29b29330",
+  "photo-1539571696357-a21b785ae123": "photo-1438761681033-6461ffad8d80",
+  "photo-1521590832167-7bcbfaa6381c": "photo-1562322140-8baeececf3df",
+  "photo-1519415943484-9fa1876825bb": "photo-1522336284037-91f7da073525",
+  "photo-1608571423902-eed4a9abfc83": "photo-1556228720-195a672e8a03",
+};
+
+export function rewriteDeadUnsplashUrl(url: string): string {
+  for (const [dead, live] of Object.entries(DEAD_UNSPLASH_IDS)) {
+    if (url.includes(dead)) return url.replace(dead, live);
+  }
+  return url;
+}
+
+export function rewriteDeadImagesInState(state: AppState): AppState {
+  return {
+    ...state,
+    masters: state.masters.map((master) => ({
+      ...master,
+      photos: master.photos.map((photo) => ({
+        ...photo,
+        url: rewriteDeadUnsplashUrl(photo.url),
+      })),
+    })),
+    products: state.products.map((product) => ({
+      ...product,
+      image: rewriteDeadUnsplashUrl(product.image),
+    })),
+    courses: state.courses.map((course) => ({
+      ...course,
+      image: rewriteDeadUnsplashUrl(course.image),
+    })),
+  };
+}
+
 const portraits = [
   "photo-1531746020798-e6953c6e8e04",
   "photo-1524504388940-b1c1722653e1",
@@ -18,15 +54,15 @@ const portraits = [
   "photo-1507003211169-0a1dd7228f2d",
   "photo-1473496169904-658ba7c44d8a",
   "photo-1521119989659-a83eee488004",
-  "photo-1502823403499-6ccfcf4cb453",
+  "photo-1494790108377-be9c29b29330",
   "photo-1552374196-c4e7ffc6e126",
-  "photo-1539571696357-a21b785ae123",
+  "photo-1438761681033-6461ffad8d80",
   "photo-1529626455594-4ff0802cfb7e",
 ];
 
 const workspaces = [
   "photo-1560066984-138dadb4c035",
-  "photo-1521590832167-7bcbfaa6381c",
+  "photo-1562322140-8baeececf3df",
   "photo-1605497788044-5a32c7078486",
   "photo-1522337360788-8b13dee7a37e",
   "photo-1595476108010-b4d1f102b1b1",
@@ -38,7 +74,7 @@ const works = [
   "photo-1487412947147-5cebf100ffc2",
   "photo-1522337660859-02fbefca4702",
   "photo-1492106087820-71f1a00d2b11",
-  "photo-1519415943484-9fa1876825bb",
+  "photo-1522336284037-91f7da073525",
   "photo-1596462502278-27bfdc403348",
 ];
 
@@ -421,7 +457,7 @@ export const SEED_PRODUCTS: Product[] = [
     description: "Rosemary and jojoba blend for retwist days.",
     price: 18,
     currency: "EUR",
-    image: img("photo-1608571423902-eed4a9abfc83"),
+    image: img("photo-1556228720-195a672e8a03"),
   },
   {
     id: "p-locs-kit-jamal",

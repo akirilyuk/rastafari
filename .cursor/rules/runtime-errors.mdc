@@ -1,0 +1,8 @@
+---
+description: After app changes, run the runtime error check and fix failures
+alwaysApply: true
+---
+
+After changing UI, routes, seed data, or shared components, run `npm run test:runtime` against the running Next.js dev server (`http://127.0.0.1:43127`). Fix hydration mismatches, console errors, Base UI warnings, and broken images before finishing.
+
+`test:runtime` visits the main pages and reads `.next/dev/logs/next-development.log`. When seed or Unsplash URLs change, also run `npm run test:images`.

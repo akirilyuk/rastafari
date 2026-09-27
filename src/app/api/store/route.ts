@@ -19,6 +19,7 @@ import {
   verifyReview,
   getShop,
 } from "@/lib/db";
+import { rewriteDeadImagesInState } from "@/lib/seed";
 import { getSession } from "@/lib/session";
 import type { Ad, Claim, GoogleBusinessLocation, Master, Review, ReviewReport } from "@/lib/types";
 
@@ -26,7 +27,7 @@ export const dynamic = "force-dynamic";
 
 async function load() {
   await seedIfEmpty();
-  return loadAppState();
+  return rewriteDeadImagesInState(await loadAppState());
 }
 
 export async function GET() {

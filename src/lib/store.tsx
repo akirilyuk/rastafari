@@ -11,7 +11,7 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { listingFromRegisteredUser } from "./register-master";
-import { DISCOVERY_POOL, createInitialState } from "./seed";
+import { DISCOVERY_POOL, createInitialState, rewriteDeadImagesInState } from "./seed";
 import type {
   Ad,
   AnalyticsEvent,
@@ -98,17 +98,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (cancelled) return;
         if (data.backend === "supabase" && data.state) {
           setBackend("supabase");
-          setState(data.state);
+          setState(rewriteDeadImagesInState(data.state));
         } else {
           if (data.backend === "supabase" && data.error) {
             toast.error(`Supabase: ${data.error}`);
           }
           const stored = readStored();
-          if (stored) setState(stored);
+          if (stored) setState(rewriteDeadImagesInState(stored));
         }
       } catch {
         const stored = readStored();
-        if (stored && !cancelled) setState(stored);
+        if (stored && !cancelled) setState(rewriteDeadImagesInState(stored));
       } finally {
         if (!cancelled) setHydrated(true);
       }
@@ -124,7 +124,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [state, hydrated, backend]);
 
   const applyRemote = useCallback((next?: AppState) => {
-    if (next) setState(next);
+    if (next) setState(rewriteDeadImagesInState(next));
   }, []);
 
   const reset = useCallback(async () => {

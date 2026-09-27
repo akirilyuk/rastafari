@@ -29,3 +29,9 @@ Pick the prefix from the change:
 - `chores/` for maintenance, tooling, docs, and configuration
 
 Do not add a generated suffix.
+
+## Runtime errors
+
+After changing UI, routes, seed data, or shared components, run `npm run test:runtime` against the running Next.js dev server (`http://127.0.0.1:43127`). That script visits the main pages, reads `.next/dev/logs/next-development.log`, and fails on hydration mismatches, Base UI warnings, broken `next/image` URLs, and other runtime errors. Fix those before finishing.
+
+Also run `npm run test:images` when seed or Unsplash URLs change.

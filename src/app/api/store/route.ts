@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   addReview,
   discoverCity,
+  ensureRegisteredMaster,
   importGbpLocation,
   isSupabaseConfigured,
   loadAppState,
@@ -61,6 +62,7 @@ type StoreBody =
   | { action: "updateMaster"; payload: { id: string; patch: Partial<Master> } }
   | { action: "toggleShowcase"; payload: { masterId: string; enabled: boolean } }
   | { action: "importGbpLocation"; payload: { loc: GoogleBusinessLocation } }
+  | { action: "ensureRegisteredMaster" }
   | { action: "discoverCity"; payload: { city: string } }
   | { action: "upsertAd"; payload: Ad }
   | { action: "track"; payload: Parameters<typeof trackEvent>[0] }
@@ -137,6 +139,13 @@ export async function POST(req: Request) {
           return NextResponse.json({ error: "Sign in required" }, { status: 401 });
         }
         result = await importGbpLocation(body.payload.loc, session.id);
+        break;
+      }
+      case "ensureRegisteredMaster": {
+        if (!session) {
+          return NextResponse.json({ error: "Sign in required" }, { status: 401 });
+        }
+        result = await ensureRegisteredMaster(session);
         break;
       }
       case "discoverCity":

@@ -23,6 +23,7 @@ import {
   type ShopRow,
   type UserRow,
 } from "./db-mappers";
+import { listingFromRegisteredUser } from "./register-master";
 import { DISCOVERY_POOL, createInitialState } from "./seed";
 import { getServiceClient, isSupabaseConfigured } from "./supabase";
 import type {
@@ -54,6 +55,30 @@ export async function upsertUser(user: AuthUser) {
     await db.from("users").upsert(userToRow(user), { onConflict: "id" }),
     "upsert user",
   );
+  if (user.role === "master") {
+    await ensureRegisteredMaster(user);
+  }
+}
+
+export async function ensureRegisteredMaster(user: AuthUser): Promise<Master | null> {
+  if (user.role !== "master") return null;
+  const db = getServiceClient();
+  const { data: existing, error } = await db
+    .from("shops")
+    .select("*")
+    .eq("claimed_by_user_id", user.id)
+    .limit(1);
+  if (error) throw new Error(`find registered shop: ${error.message}`);
+  if (existing?.[0]) return shopFromRow(existing[0] as ShopRow);
+
+  const { data: slugs, error: slugError } = await db.from("shops").select("slug");
+  if (slugError) throw new Error(`list shop slugs: ${slugError.message}`);
+  const master = listingFromRegisteredUser(
+    user,
+    (slugs ?? []).map((row) => row.slug as string),
+  );
+  unwrap(await db.from("shops").insert(shopToRow(master)), "register shop");
+  return master;
 }
 
 export async function loadAppState(): Promise<AppState> {

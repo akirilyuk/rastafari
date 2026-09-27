@@ -4,6 +4,7 @@ import { ThemeProvider } from "next-themes";
 import { Suspense } from "react";
 import { AuthProvider } from "@/lib/auth-client";
 import { StoreProvider } from "@/lib/store";
+import { AutoRegisterMaster } from "@/components/auto-register-master";
 import { SourceTracker } from "@/components/source-tracker";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -18,6 +19,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     >
       <AuthProvider>
         <StoreProvider>
+          <AutoRegisterMaster />
           <Suspense fallback={null}>
             <SourceTracker />
           </Suspense>

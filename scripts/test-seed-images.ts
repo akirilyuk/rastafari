@@ -49,11 +49,17 @@ for (const id of dead) {
   }
 }
 
-const failures: string[] = [];
-for (const url of urls) {
-  const res = await fetch(url, { method: "HEAD" });
-  if (!res.ok) failures.push(`${res.status} ${url}`);
+async function checkLiveUrls() {
+  const failures: string[] = [];
+  for (const url of urls) {
+    const res = await fetch(url, { method: "HEAD" });
+    if (!res.ok) failures.push(`${res.status} ${url}`);
+  }
+  assert.equal(failures.length, 0, `dead seed images:\n${failures.join("\n")}`);
+  console.log(`ok — ${urls.size} seed images returned 200`);
 }
 
-assert.equal(failures.length, 0, `dead seed images:\n${failures.join("\n")}`);
-console.log(`ok — ${urls.size} seed images returned 200`);
+void checkLiveUrls().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

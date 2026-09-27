@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from "react-leaflet";
 import type { Master } from "@/lib/types";
+import { CARTO_DARK_TILES } from "@/lib/carto";
 import { formatDistance } from "@/lib/geo";
 import "leaflet/dist/leaflet.css";
 
@@ -33,7 +34,7 @@ export function NearbyMap({
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
-        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+        url={CARTO_DARK_TILES}
       />
       <Recenter lat={origin.lat} lng={origin.lng} />
       <CircleMarker

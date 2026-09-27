@@ -43,6 +43,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       suppressHydrationWarning
+      data-theme="dark"
+      style={{ colorScheme: "dark" }}
       className={`${outfit.variable} ${fraunces.variable} ${geistMono.variable} dark h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">

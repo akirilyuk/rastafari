@@ -119,6 +119,7 @@
   }
   html {
     @apply font-sans;
+    color-scheme: dark;
   }
   .font-heading {
     font-family: var(--font-heading), ui-serif, Georgia, serif;

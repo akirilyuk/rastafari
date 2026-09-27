@@ -1,0 +1,14 @@
+---
+description: Branch names use feature/, fix/, or chores/ and never cursor/
+alwaysApply: true
+---
+
+Do not create branches whose names start with `cursor/`. This applies to Cloud Agents and local agents.
+
+Pick the prefix from the change:
+
+- `feature/` for new behavior
+- `fix/` for a bug fix
+- `chores/` for maintenance, tooling, docs, and configuration
+
+Do not add a generated suffix.

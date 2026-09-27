@@ -125,7 +125,9 @@ export function SearchHome() {
       <section className="relative overflow-hidden border-b border-border">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(212,160,40,0.18),_transparent_55%)]" />
         <div className="relative mx-auto max-w-6xl px-4 py-10 sm:py-14">
-          <p className="text-xs font-medium tracking-[0.2em] text-gold uppercase">Locs · braids · kosy</p>
+          <p className="text-xs font-medium tracking-[0.2em] text-gold uppercase">
+            DREADS · BRAIDS · CORNROWS · TWISTS · NATURAL DREADLOCKS
+          </p>
           <h1 className="mt-2 max-w-2xl font-heading text-4xl leading-[1.1] text-balance sm:text-5xl">
             The nearest artist for your hair, not a random salon.
           </h1>
